@@ -61,10 +61,10 @@ with col1:
     max_num = cfg["max_num"]
 
 with col2:
-    lookback = st.slider("Ultimele N trageri pentru analiză:", 20, 500, 100)
+    lookback = st.slider("Ultimele N trageri pentru analiză:", 200, 1000, 500)
 
 with col3:
-    n_variants = st.slider("Variante", 1, 10, 3)
+    n_variants = st.slider("Variante", 1, 10, 1)
 
 with col4:
     hot_cold_n = st.slider("Hot/Cold", 5, 20, 10)
