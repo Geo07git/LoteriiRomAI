@@ -567,12 +567,12 @@ with tab4:
     st.markdown("### Backtest — câte numere nimerești în medie")
     st.caption(
         "Simulare: se prezice tragerea N folosind doar trageri < N. "
-        "Media nimeririlor pe ultimele 100 de trageri."
+        "Media nimeririlor pe ultimele 150 de trageri."
     )
 
     if st.button("Rulează Backtest"):
         with st.spinner("Calculez backtest..."):
-            bt = backtest(history, top_n, max_num, n_draws=100)
+            bt = backtest(history, top_n, max_num, n_draws=150)
 
         if bt:
             col_b1, col_b2, col_b3 = st.columns(3)
