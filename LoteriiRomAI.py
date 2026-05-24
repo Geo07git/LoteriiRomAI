@@ -19,11 +19,6 @@ import plotly.graph_objects as go
 import plotly.express as px
 from itertools import combinations
 
-
-# ─────────────────────────────────────────────────────────────────
-# CONFIG
-# ─────────────────────────────────────────────────────────────────
-
 st.set_page_config(page_title="Lotto Romania AI", layout="wide", page_icon="🎰")
 
 LOTO_CONFIG = {
@@ -52,6 +47,53 @@ LOTO_CONFIG = {
 
 st.title("🎰 Lotto Romania — AI Predictor")
 
+if "app_started" not in st.session_state:
+    st.session_state.app_started = False
+
+if not st.session_state.app_started:
+    with st.expander("ℹ️ Cum se folosește aplicația", expanded=True):
+        st.markdown("""
+### Pași rapizi
+- Alege loteria din selector: **Loto6/49**, **Joker** sau **SuperLoto**.
+- Setează câte trageri istorice vrei în analiză din **Ultimele N trageri pentru analiză**.
+- Alege câte **Variante** vrei să genereze fiecare model.
+- Ajustează **Hot/Cold** pentru câte numere statistice să fie afișate.
+- Dacă vrei refacerea modelului ML pe datele curente, apasă **Retrain Model**.
+
+### Ce vezi în aplicație
+- **Predicții**: variante generate de modelele Independent Events, Apriori și ML Ensemble.
+- **Combinat**: lista finală recomandată, ordonată de la cel mai probabil număr la următorul.
+- **Backtest**: compară performanța modelelor cu baseline-ul random folosind edge.
+- **Statistici**: frecvențe, scoruri și numere Hot/Cold.
+- **Reguli Apriori**: relații de asociere între numere observate în istoric.
+
+### Cum interpretezi rezultatele
+- În **Combinat**, primele numere sunt cele mai bine susținute de scorul agregat.
+- În **Backtest**, un **Edge pozitiv** înseamnă că modelul a performat mai bine decât random pe istoricul simulat.
+- Dacă **Edge** este aproape de 0, modelul este foarte apropiat de random.
+- Dacă **Edge** este negativ, modelul este mai slab decât random pe intervalul testat.
+
+### Recomandări de utilizare
+- Începe cu un lookback de aproximativ **400-600** trageri pentru un echilibru bun între stabilitate și viteză.
+- Verifică mai întâi tabul **Combinat**, apoi compară cu **Predicții** pentru confirmare între modele.
+- Rulează **Backtest** doar când ai nevoie de validare, deoarece este partea cea mai solicitantă ca timp de calcul.
+- Folosește aplicația ca instrument de analiză statistică, nu ca garanție de câștig.
+""")
+
+        if st.button("▶️ Pornește analiza", use_container_width=True, type="primary"):
+            st.session_state.app_started = True
+            st.rerun()
+
+    st.stop()
+
+nav_col1, nav_col2 = st.columns([1, 5])
+with nav_col1:
+    if st.button("↩ Înapoi la instrucțiuni", use_container_width=True):
+        st.session_state.app_started = False
+        st.rerun()
+with nav_col2:
+    st.caption("Aplicația este activă. Poți reveni oricând la ecranul introductiv.")
+
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
@@ -71,10 +113,6 @@ with col4:
 
 retrain_btn = st.button("🔄 Retrain Model", use_container_width=True)
 st.caption("Reantrenează modelul pe datele curente.")
-
-# ─────────────────────────────────────────────────────────────────
-# SCRAPING
-# ─────────────────────────────────────────────────────────────────
 
 @st.cache_data(ttl=43200, show_spinner=False)
 def fetch_history(url):
@@ -105,11 +143,6 @@ def fetch_history(url):
     except Exception as e:
         st.error(f"Eroare la scraping: {e}")
         return []
-
-
-# ─────────────────────────────────────────────────────────────────
-# STATISTICI
-# ─────────────────────────────────────────────────────────────────
 
 def number_frequencies(results):
     cnt = Counter()
@@ -142,12 +175,6 @@ def calculate_intervals(results):
             "overdue_score": max(0.0, last_gap - avg_gap),
         }
     return intervals
-
-
-# ─────────────────────────────────────────────────────────────────
-# PREDICȚII ȘI MODELE
-# ─────────────────────────────────────────────────────────────────
-
 
 def normalize_scores(score_dict, max_num):
     values = np.array([score_dict.get(n, 0.0) for n in range(1, max_num + 1)], dtype=float)
@@ -336,11 +363,6 @@ def get_recommended_pool(ranking, max_num):
     pool_size = int(np.ceil(max_num / 2))
     return ranking[:pool_size]
 
-
-# ─────────────────────────────────────────────────────────────────
-# BACKTEST
-# ─────────────────────────────────────────────────────────────────
-
 def backtest_model(history, predictor_fn, top_n, max_num, n_draws=30, **kwargs):
     if len(history) < n_draws + 10:
         return None
@@ -398,11 +420,6 @@ def compute_edge_metrics(model_ev, top_n, max_num):
         "edge_pct": float(edge_pct),
     }
 
-
-# ─────────────────────────────────────────────────────────────────
-# GRAFICE
-# ─────────────────────────────────────────────────────────────────
-
 def plot_frequencies(freq, max_num):
     nums = list(range(1, max_num + 1))
     counts = [freq.get(n, 0) for n in nums]
@@ -447,10 +464,6 @@ def render_ball_row(numbers, color, prefix=""):
     html += "</div>"
     st.markdown(html, unsafe_allow_html=True)
 
-# ─────────────────────────────────────────────────────────────────
-# FETCH DATE
-# ─────────────────────────────────────────────────────────────────
-
 history = fetch_history(cfg["url"])
 
 if history:
@@ -476,10 +489,6 @@ if history:
     combined_scores, combined_ranking = combine_rankings(ind_norm, apr_norm, ml_norm, max_num)
     combined_variants = predict_combined_variants(combined_scores, top_n, max_num, n_variants)
     recommended_pool = get_recommended_pool(combined_ranking, max_num)
-
-# ─────────────────────────────────────────────────────────────────
-# TABS
-# ─────────────────────────────────────────────────────────────────
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -540,15 +549,15 @@ if history:
         st.markdown("### Backtest — câte numere nimerești în medie")
         st.caption(
             "Simulare: se prezice tragerea N folosind doar trageri < N. "
-            "Media nimeririlor pe ultimele 100 de trageri."
+            "Media nimeririlor pe ultimele 150 de trageri."
         )
 
         if st.button("Rulează Backtest"):
             with st.spinner("Calculez backtest..."):
-                bt_ind = backtest_model(history, predict_independent_events, top_n, max_num, n_draws=100)
-                bt_apr = backtest_model(history, predict_apriori, top_n, max_num, n_draws=100)
-                bt_ml = backtest_ml_model(history, top_n, max_num, cfg["model_file"], n_draws=100)
-                bt_comb = backtest_combined_model(history, top_n, max_num, cfg["model_file"], n_draws=100)
+                bt_ind = backtest_model(history, predict_independent_events, top_n, max_num, n_draws=150)
+                bt_apr = backtest_model(history, predict_apriori, top_n, max_num, n_draws=150)
+                bt_ml = backtest_ml_model(history, top_n, max_num, cfg["model_file"], n_draws=150)
+                bt_comb = backtest_combined_model(history, top_n, max_num, cfg["model_file"], n_draws=150)
 
             results = []
             if bt_ind is not None:
@@ -650,15 +659,3 @@ if history:
             st.info("Nu au fost găsite reguli Apriori suficiente pentru pragurile actuale.")
 else:
     st.warning("Nu s-au putut încărca datele istorice pentru loteria selectată.")
-
- # ─────────────────────────────────────────────────────────────────
-# FOOTER
-# ─────────────────────────────────────────────────────────────────
-
-tz  = pytz.timezone("Europe/Bucharest")
-now = datetime.now(tz).strftime("%d-%m-%Y %H:%M")
-st.divider()
-st.caption(
-    f"Actualizat: {now} | "
-    "Aceasta aplicatie este in scop educational. Loteria este un joc de sansa."
-)   
